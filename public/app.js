@@ -257,8 +257,17 @@
       ? `Pesan baru di Chat Global` 
       : `Pesan pribadi dari ${msg.sender_username}`;
 
+    let bodyText = msg.content || '';
+    if (!bodyText && msg.file_url) {
+      if (msg.file_type && msg.file_type.startsWith('image/')) {
+        bodyText = '📷 Kirim Gambar';
+      } else {
+        bodyText = `📎 File: ${msg.file_name || 'Lampiran'}`;
+      }
+    }
+
     const options = {
-      body: msg.is_global ? `${msg.sender_username}: ${msg.content}` : msg.content,
+      body: msg.is_global ? `${msg.sender_username}: ${bodyText}` : bodyText,
       tag: msg.is_global ? 'global' : `private-${msg.sender_id}`,
       renotify: true
     };
