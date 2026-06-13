@@ -16,6 +16,7 @@
   let replyingTo = null;
   let editingMessage = null;
   let contextMenuLastShown = 0;
+  const onlineUserIds = new Set();
 
   // ─── DOM Elements ──────────────────────────────────
   const $ = (sel) => document.querySelector(sel);
@@ -62,6 +63,15 @@
   const imageModal = $('#image-modal');
   const imageModalImg = $('#image-modal-img');
   const imageModalCaption = $('#image-modal-caption');
+
+  const profileModal = $('#profile-modal');
+  const profileForm = $('#profile-form');
+  const profileAvatarPreview = $('#profile-avatar-preview');
+  const profileAvatarInput = $('#profile-avatar-input');
+  const profileUsername = $('#profile-username');
+  const profilePassword = $('#profile-password');
+  const profileError = $('#profile-error');
+  const profileSuccess = $('#profile-success');
 
   const contextMenu = $('#context-menu');
   const ctxReply = $('#ctx-reply');
@@ -168,8 +178,7 @@
     chatScreen.classList.remove('hidden');
 
     myUsername.textContent = currentUser.username;
-    myAvatar.style.background = currentUser.avatarColor;
-    myAvatar.textContent = currentUser.username[0].toUpperCase();
+    setAvatar(myAvatar, currentUser);
 
     // Request notification permission
     if ("Notification" in window && Notification.permission === "default") {
@@ -207,7 +216,28 @@
           }
         }
       )
-      .subscribe();
+      .on('presence', { event: 'sync' }, () => {
+        const state = realtimeChannel.presenceState();
+        onlineUserIds.clear();
+        Object.keys(state).forEach((key) => {
+          const presences = state[key];
+          presences.forEach((p) => {
+            if (p.user_id) {
+              onlineUserIds.add(p.user_id);
+            }
+          });
+        });
+        renderUsersList(allUsers);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await realtimeChannel.track({
+            user_id: currentUser.id,
+            username: currentUser.username,
+            online_at: new Date().toISOString()
+          });
+        }
+      });
   }
 
   // ─── Handle Realtime Message ───────────────────────
@@ -322,10 +352,19 @@
 
   // ─── Render Users List ─────────────────────────────
   function renderUsersList(users) {
-    onlineCount.textContent = users.length;
+    const sortedUsers = [...users].sort((a, b) => {
+      const aOnline = onlineUserIds.has(a.id);
+      const bOnline = onlineUserIds.has(b.id);
+      if (aOnline && !bOnline) return -1;
+      if (!aOnline && bOnline) return 1;
+      return a.username.localeCompare(b.username);
+    });
+
+    onlineCount.textContent = sortedUsers.filter(u => onlineUserIds.has(u.id)).length;
     onlineUsersList.innerHTML = '';
 
-    users.forEach(user => {
+    sortedUsers.forEach(user => {
+      const isOnline = onlineUserIds.has(user.id);
       const btn = document.createElement('button');
       btn.className = 'user-item';
       if (activeChat.type === 'private' && activeChat.userId === user.id) {
@@ -337,13 +376,20 @@
       const unread = unreadCounts[user.id] || 0;
       const badgeStyle = unread > 0 ? '' : 'display:none;';
 
+      const avatarEl = document.createElement('div');
+      avatarEl.className = 'user-avatar';
+      setAvatar(avatarEl, user);
+
+      const statusDot = `<span class="status-indicator-dot ${isOnline ? 'online' : 'offline'}"></span>`;
+
       btn.innerHTML = `
-        <div class="user-avatar" style="background:${user.avatar_color}">
-          ${user.username[0].toUpperCase()}
+        <div class="avatar-container">
+          ${avatarEl.outerHTML}
+          ${statusDot}
         </div>
         <div class="user-info">
           <span class="user-name">${escapeHTML(user.username)}</span>
-          <span class="user-status">Pengguna</span>
+          <span class="user-status ${isOnline ? 'online' : 'offline'}">${isOnline ? 'Online' : 'Offline'}</span>
         </div>
         <span class="unread-badge" id="unread-${user.id}" style="${badgeStyle}">${unread}</span>
       `;
@@ -385,8 +431,13 @@
       if (userBtn) userBtn.classList.add('active');
       chatTitle.textContent = username;
       chatStatus.textContent = 'Chat pribadi';
-      chatAvatar.style.background = avatarColor || '#6C5CE7';
-      chatAvatar.innerHTML = `<span style="color:white;font-weight:700;font-size:1rem;">${username[0].toUpperCase()}</span>`;
+      const targetUser = allUsers.find(u => u.id === userId);
+      if (targetUser) {
+        setAvatar(chatAvatar, targetUser);
+      } else {
+        chatAvatar.style.background = avatarColor || '#6C5CE7';
+        chatAvatar.innerHTML = `<span style="color:white;font-weight:700;font-size:1rem;">${username[0].toUpperCase()}</span>`;
+      }
       unreadCounts[userId] = 0;
       updateUnreadBadge(userId);
       loadPrivateMessages(userId);
@@ -976,6 +1027,135 @@
     }
   });
 
+  // ─── Edit Profile Modal ─────────────────────────────
+  let profileAvatarUrl = null;
+
+  $('#edit-profile-btn').addEventListener('click', () => {
+    profileUsername.value = currentUser.username;
+    profilePassword.value = '';
+    profileError.textContent = '';
+    profileSuccess.textContent = '';
+    profileSuccess.style.display = 'none';
+    profileAvatarUrl = currentUser.avatarUrl || currentUser.avatar_url || null;
+    
+    setAvatar(profileAvatarPreview, currentUser);
+    
+    profileModal.classList.add('active');
+  });
+
+  $('#close-profile-modal').addEventListener('click', () => {
+    profileModal.classList.remove('active');
+  });
+
+  profileAvatarPreview.addEventListener('click', () => {
+    profileAvatarInput.click();
+  });
+  $('#change-avatar-label').addEventListener('click', () => {
+    profileAvatarInput.click();
+  });
+
+  profileAvatarInput.addEventListener('change', async () => {
+    const file = profileAvatarInput.files[0];
+    if (!file) return;
+
+    profileError.textContent = '';
+    profileSuccess.textContent = 'Mengupload foto profil...';
+    profileSuccess.style.display = 'block';
+
+    try {
+      let ext = 'png';
+      if (file.name && file.name.includes('.')) {
+        ext = file.name.split('.').pop();
+      } else if (file.type) {
+        ext = file.type.split('/').pop();
+      }
+      const path = `avatars/${currentUser.id}-${uuidv4()}.${ext}`;
+
+      const { data, error } = await supabaseClient.storage
+        .from('chat-attachments')
+        .upload(path, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabaseClient.storage
+        .from('chat-attachments')
+        .getPublicUrl(path);
+
+      profileAvatarUrl = urlData.publicUrl;
+
+      setAvatar(profileAvatarPreview, {
+        username: currentUser.username,
+        avatarUrl: profileAvatarUrl
+      });
+
+      profileSuccess.textContent = 'Foto profil berhasil diupload!';
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+      profileError.textContent = 'Gagal upload avatar: ' + err.message;
+      profileSuccess.style.display = 'none';
+    }
+  });
+
+  profileForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const saveBtn = $('#profile-save-btn');
+    saveBtn.classList.add('loading');
+    profileError.textContent = '';
+    profileSuccess.style.display = 'none';
+
+    const username = profileUsername.value.trim();
+    const password = profilePassword.value;
+
+    try {
+      const body = {
+        username,
+        avatarUrl: profileAvatarUrl
+      };
+      if (password) {
+        body.password = password;
+      }
+
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      currentUser = data.user;
+
+      myUsername.textContent = currentUser.username;
+      setAvatar(myAvatar, currentUser);
+
+      profileSuccess.textContent = 'Profil berhasil diperbarui!';
+      profileSuccess.style.display = 'block';
+
+      await loadUsers();
+
+      if (realtimeChannel) {
+        await realtimeChannel.track({
+          user_id: currentUser.id,
+          username: currentUser.username,
+          online_at: new Date().toISOString()
+        });
+      }
+
+      setTimeout(() => {
+        profileModal.classList.remove('active');
+      }, 1000);
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+      profileError.textContent = err.message;
+    } finally {
+      saveBtn.classList.remove('loading');
+    }
+  });
+
   function uuidv4() {
     return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
       (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
@@ -1015,6 +1195,19 @@
   });
 
   // ─── Utilities ─────────────────────────────────────
+  function setAvatar(el, user) {
+    if (!el || !user) return;
+    const url = user.avatarUrl || user.avatar_url;
+    if (url) {
+      el.style.background = 'none';
+      el.innerHTML = `<img src="${url}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+    } else {
+      el.style.background = user.avatarColor || user.avatar_color || '#6C5CE7';
+      const initial = (user.username || '?')[0].toUpperCase();
+      el.innerHTML = `<span style="color:white;font-weight:700;">${initial}</span>`;
+    }
+  }
+
   function escapeHTML(str) {
     const div = document.createElement('div');
     div.textContent = str;

@@ -34,7 +34,7 @@ function getUserFromToken(req) {
 
 function setToken(res, user) {
   const token = jwt.sign(
-    { id: user.id, username: user.username, avatarColor: user.avatarColor },
+    { id: user.id, username: user.username, avatarColor: user.avatarColor, avatarUrl: user.avatarUrl },
     JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -105,7 +105,7 @@ app.post('/api/register', async (req, res) => {
     return res.status(500).json({ error: 'Gagal mendaftar: ' + error.message });
   }
 
-  const user = { id: userId, username, avatarColor };
+  const user = { id: userId, username, avatarColor, avatarUrl: null };
   setToken(res, user);
   res.json({ success: true, user });
 });
@@ -131,7 +131,7 @@ app.post('/api/login', async (req, res) => {
     return res.status(401).json({ error: 'Password salah' });
   }
 
-  const user = { id: dbUser.id, username: dbUser.username, avatarColor: dbUser.avatar_color };
+  const user = { id: dbUser.id, username: dbUser.username, avatarColor: dbUser.avatar_color, avatarUrl: dbUser.avatar_url };
   setToken(res, user);
   res.json({ success: true, user });
 });
@@ -146,7 +146,7 @@ app.post('/api/logout', (req, res) => {
 app.get('/api/me', (req, res) => {
   const user = getUserFromToken(req);
   if (user) {
-    res.json({ user: { id: user.id, username: user.username, avatarColor: user.avatarColor } });
+    res.json({ user: { id: user.id, username: user.username, avatarColor: user.avatarColor, avatarUrl: user.avatarUrl } });
   } else {
     res.status(401).json({ error: 'Not authenticated' });
   }
@@ -326,11 +326,71 @@ app.get('/api/users', async (req, res) => {
 
   const { data } = await supabase
     .from('users')
-    .select('id, username, avatar_color')
+    .select('id, username, avatar_color, avatar_url')
     .neq('id', user.id)
     .order('username');
 
   res.json(data || []);
+});
+
+// Update profile
+app.put('/api/profile', async (req, res) => {
+  const user = getUserFromToken(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
+
+  const { username, password, avatarUrl } = req.body;
+
+  if (username && (username.trim().length < 3 || username.trim().length > 20)) {
+    return res.status(400).json({ error: 'Username harus berukuran 3 hingga 20 karakter' });
+  }
+
+  const updateData = {};
+  if (username) {
+    const trimmed = username.trim();
+    if (trimmed.toLowerCase() !== user.username.toLowerCase()) {
+      const { data: existing } = await supabase
+        .from('users')
+        .select('id')
+        .ilike('username', trimmed)
+        .maybeSingle();
+
+      if (existing) {
+        return res.status(400).json({ error: 'Username sudah digunakan oleh orang lain' });
+      }
+    }
+    updateData.username = trimmed;
+  }
+
+  if (password && password.length >= 4) {
+    updateData.password = bcrypt.hashSync(password, 10);
+  } else if (password) {
+    return res.status(400).json({ error: 'Password baru minimal 4 karakter' });
+  }
+
+  if (avatarUrl !== undefined) {
+    updateData.avatar_url = avatarUrl;
+  }
+
+  const { data, error } = await supabase
+    .from('users')
+    .update(updateData)
+    .eq('id', user.id)
+    .select()
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: 'Gagal memperbarui profil: ' + error.message });
+  }
+
+  const updatedUser = {
+    id: user.id,
+    username: data.username,
+    avatarColor: data.avatar_color,
+    avatarUrl: data.avatar_url
+  };
+  setToken(res, updatedUser);
+
+  res.json({ success: true, user: updatedUser });
 });
 
 // ─── Start Server (local dev) ────────────────────────────────

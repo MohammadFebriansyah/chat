@@ -769,3 +769,58 @@ body {
   padding: 10px 0;
   font-size: 0.95rem;
 }
+
+/* ─── Presence & Status Dot Indicators ─── */
+.avatar-container {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+.status-indicator-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid #1e293b;
+  transition: background-color 0.3s ease;
+}
+.status-indicator-dot.online {
+  background-color: #4cd137;
+}
+.status-indicator-dot.offline {
+  background-color: #95a5a6;
+}
+.user-status.online {
+  color: #4cd137 !important;
+  font-weight: 500;
+}
+.user-status.offline {
+  color: var(--text-muted) !important;
+}
+
+/* ─── Profile Modal styling ─── */
+.profile-box {
+  animation: profileModalZoom 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes profileModalZoom {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+#profile-avatar-preview {
+  transition: border-color 0.2s ease, transform 0.2s ease;
+  background-position: center;
+  background-size: cover;
+}
+#profile-avatar-preview:hover {
+  border-color: #a29bfe;
+  transform: scale(1.05);
+}

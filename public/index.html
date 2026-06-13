@@ -147,9 +147,14 @@
             <span class="user-status online">Online</span>
           </div>
         </div>
-        <button id="logout-btn" class="logout-btn" title="Keluar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-        </button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button id="edit-profile-btn" class="logout-btn" title="Edit Profil">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </button>
+          <button id="logout-btn" class="logout-btn" title="Keluar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -279,6 +284,37 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
       Hapus
     </button>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div id="profile-modal" class="image-modal">
+    <div class="auth-box profile-box" style="width: 90%; max-width: 400px; padding: 24px; background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; backdrop-filter: blur(20px); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0; color: white; font-size: 1.5rem;">Edit Profil</h2>
+        <span id="close-profile-modal" style="cursor: pointer; font-size: 1.8rem; color: var(--text-muted); font-weight: 300;">&times;</span>
+      </div>
+      <form id="profile-form" autocomplete="off">
+        <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; gap: 10px;">
+          <div class="user-avatar" id="profile-avatar-preview" style="width: 80px; height: 80px; font-size: 2rem; position: relative; cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid rgba(255,255,255,0.1);"></div>
+          <input type="file" id="profile-avatar-input" accept="image/*" style="display: none;">
+          <span style="font-size: 0.85rem; color: #a29bfe; cursor: pointer; font-weight: 500;" id="change-avatar-label">Ubah Foto Profil</span>
+        </div>
+        <div class="input-group">
+          <input type="text" id="profile-username" placeholder=" " required minlength="3" maxlength="20">
+          <label for="profile-username">Nama / Username</label>
+        </div>
+        <div class="input-group">
+          <input type="password" id="profile-password" placeholder=" ">
+          <label for="profile-password">Password Baru (kosongkan jika tidak diubah)</label>
+        </div>
+        <div id="profile-error" class="auth-error" style="margin-bottom: 12px; font-size: 0.85rem; text-align: center;"></div>
+        <div id="profile-success" style="color: #4cd137; font-size: 0.85rem; margin-bottom: 12px; display: none; text-align: center;"></div>
+        <button type="submit" id="profile-save-btn" class="auth-btn">
+          <span>Simpan Perubahan</span>
+          <div class="btn-loader"></div>
+        </button>
+      </form>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
