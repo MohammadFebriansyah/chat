@@ -188,9 +188,9 @@ app.post('/api/messages', async (req, res) => {
   const user = getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
 
-  const { content, receiverId, receiverUsername, isGlobal } = req.body;
-  if (!content || !content.trim()) {
-    return res.status(400).json({ error: 'Pesan tidak boleh kosong' });
+  const { content, receiverId, receiverUsername, isGlobal, fileUrl, fileName, fileSize, fileType } = req.body;
+  if ((!content || !content.trim()) && !fileUrl) {
+    return res.status(400).json({ error: 'Pesan atau file tidak boleh kosong' });
   }
 
   const msg = {
@@ -199,14 +199,18 @@ app.post('/api/messages', async (req, res) => {
     sender_username: user.username,
     receiver_id: isGlobal ? null : receiverId,
     receiver_username: isGlobal ? null : receiverUsername,
-    content: content.trim(),
-    is_global: !!isGlobal
+    content: content ? content.trim() : null,
+    is_global: !!isGlobal,
+    file_url: fileUrl || null,
+    file_name: fileName || null,
+    file_size: fileSize || null,
+    file_type: fileType || null
   };
 
   const { data, error } = await supabase.from('messages').insert(msg).select().single();
 
   if (error) {
-    return res.status(500).json({ error: 'Gagal mengirim pesan' });
+    return res.status(500).json({ error: 'Gagal mengirim pesan: ' + error.message });
   }
 
   res.json(data);

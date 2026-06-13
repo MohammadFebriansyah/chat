@@ -10,6 +10,9 @@
   let activeChat = { type: 'global', userId: null, username: null };
   let unreadCounts = { global: 0 };
   let allUsers = [];
+  let selectedFile = null;
+  let uploadedFileUrl = null;
+  let progressInterval = null;
 
   // ─── DOM Elements ──────────────────────────────────
   const $ = (sel) => document.querySelector(sel);
@@ -36,6 +39,13 @@
   const globalUnread = $('#global-unread');
   const myUsername = $('#my-username');
   const myAvatar = $('#my-avatar');
+  const fileInput = $('#file-input');
+  const attachBtn = $('#attach-btn');
+  const uploadPreview = $('#upload-preview');
+  const previewName = $('#preview-name');
+  const previewSize = $('#preview-size');
+  const cancelUploadBtn = $('#cancel-upload-btn');
+  const uploadProgressFill = $('#upload-progress-fill');
 
   // ─── Auth Switching ────────────────────────────────
   $('#show-register').addEventListener('click', (e) => {
@@ -390,9 +400,39 @@
     const senderLabel = activeChat.type === 'global' && !isMine
       ? `<div class="msg-sender">${escapeHTML(msg.sender_username)}</div>` : '';
 
+    let contentHTML = '';
+    if (msg.content) {
+      contentHTML += `<div class="msg-text">${escapeHTML(msg.content)}</div>`;
+    }
+
+    if (msg.file_url) {
+      if (msg.file_type && msg.file_type.startsWith('image/')) {
+        contentHTML += `
+          <a href="${msg.file_url}" target="_blank" class="msg-image-wrap">
+            <img src="${msg.file_url}" alt="${escapeHTML(msg.file_name)}" class="msg-image">
+          </a>
+        `;
+      } else {
+        contentHTML += `
+          <div class="msg-file-wrap">
+            <div class="msg-file-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            </div>
+            <div class="msg-file-info">
+              <span class="msg-file-name" title="${escapeHTML(msg.file_name)}">${escapeHTML(msg.file_name)}</span>
+              <span class="msg-file-size">${formatBytes(msg.file_size)}</span>
+            </div>
+            <a href="${msg.file_url}" download="${escapeHTML(msg.file_name)}" target="_blank" class="msg-file-dl" title="Download">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            </a>
+          </div>
+        `;
+      }
+    }
+
     div.innerHTML = `
       ${senderLabel}
-      <div class="msg-text">${escapeHTML(msg.content)}</div>
+      ${contentHTML}
       <div class="msg-time">${time}</div>
     `;
 
@@ -433,18 +473,27 @@
   // ─── Send Message ──────────────────────────────────
   async function sendMessage() {
     const content = messageInput.value.trim();
-    if (!content) return;
+    if (!content && !uploadedFileUrl) return;
 
     sendBtn.disabled = true;
     messageInput.value = '';
     messageInput.style.height = 'auto';
+
+    const tempFileUrl = uploadedFileUrl;
+    const tempFile = selectedFile;
+    
+    clearAttachment();
 
     try {
       const body = {
         content,
         isGlobal: activeChat.type === 'global',
         receiverId: activeChat.userId,
-        receiverUsername: activeChat.username
+        receiverUsername: activeChat.username,
+        fileUrl: tempFileUrl,
+        fileName: tempFile ? tempFile.name : null,
+        fileSize: tempFile ? tempFile.size : null,
+        fileType: tempFile ? tempFile.type : null
       };
 
       const res = await fetch('/api/messages', {
@@ -456,12 +505,13 @@
       const msg = await res.json();
 
       if (res.ok) {
-        // Track this message ID so realtime doesn't duplicate it
         sentMessageIds.add(msg.id);
         appendMessage(msg);
       }
     } catch (err) {
       console.error('Failed to send message:', err);
+    } finally {
+      updateSendButtonState();
     }
   }
 
@@ -475,12 +525,108 @@
   });
 
   messageInput.addEventListener('input', () => {
-    sendBtn.disabled = !messageInput.value.trim();
+    updateSendButtonState();
 
     // Auto-resize textarea
     messageInput.style.height = 'auto';
     messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
   });
+
+  // ─── File Attachment Handlers ───────────────────────
+  attachBtn.addEventListener('click', () => {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    clearAttachment();
+
+    selectedFile = file;
+    previewName.textContent = file.name;
+    previewSize.textContent = formatBytes(file.size);
+    uploadPreview.style.display = 'block';
+    uploadProgressFill.style.width = '0%';
+    sendBtn.disabled = true;
+
+    startProgressAnimation();
+
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `attachments/${uuidv4()}.${ext}`;
+
+      const { data, error } = await supabaseClient.storage
+        .from('chat-attachments')
+        .upload(path, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabaseClient.storage
+        .from('chat-attachments')
+        .getPublicUrl(path);
+
+      uploadedFileUrl = urlData.publicUrl;
+      finishProgressAnimation();
+      sendBtn.disabled = false;
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Gagal mengupload file: ' + err.message);
+      clearAttachment();
+    }
+  });
+
+  cancelUploadBtn.addEventListener('click', () => {
+    clearAttachment();
+  });
+
+  function clearAttachment() {
+    clearInterval(progressInterval);
+    selectedFile = null;
+    uploadedFileUrl = null;
+    fileInput.value = '';
+    uploadPreview.style.display = 'none';
+    uploadProgressFill.style.width = '0%';
+    updateSendButtonState();
+  }
+
+  function startProgressAnimation() {
+    clearInterval(progressInterval);
+    let pct = 0;
+    progressInterval = setInterval(() => {
+      if (pct < 90) {
+        pct += Math.random() * 12;
+        uploadProgressFill.style.width = `${Math.min(pct, 90)}%`;
+      }
+    }, 80);
+  }
+
+  function finishProgressAnimation() {
+    clearInterval(progressInterval);
+    uploadProgressFill.style.width = '100%';
+  }
+
+  function updateSendButtonState() {
+    sendBtn.disabled = !messageInput.value.trim() && !uploadedFileUrl;
+  }
+
+  function uuidv4() {
+    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+    );
+  }
+
+  function formatBytes(bytes, decimals = 2) {
+    if (!bytes) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  }
 
   // ─── Sidebar Toggle (Mobile) ──────────────────────
   const overlay = document.createElement('div');

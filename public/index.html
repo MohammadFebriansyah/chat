@@ -200,7 +200,30 @@
 
       <!-- Message Input -->
       <div class="chat-input-area">
+        <div id="upload-preview" class="upload-preview" style="display: none;">
+          <div class="preview-content">
+            <div class="preview-file-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            </div>
+            <div class="preview-info">
+              <span id="preview-name">filename.txt</span>
+              <span id="preview-size">0 KB</span>
+            </div>
+            <button id="cancel-upload-btn" class="cancel-upload-btn" title="Batal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="upload-progress-bar">
+            <div id="upload-progress-fill" class="upload-progress-fill"></div>
+          </div>
+        </div>
         <div class="chat-input-wrapper">
+          <input type="file" id="file-input" style="display: none;">
+          <button id="attach-btn" class="attach-btn" title="Kirim Gambar / File">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+            </svg>
+          </button>
           <textarea id="message-input" placeholder="Ketik pesan..." rows="1" maxlength="2000"></textarea>
           <button id="send-btn" class="send-btn" title="Kirim" disabled>
             <svg viewBox="0 0 24 24" fill="none">
