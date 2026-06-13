@@ -172,6 +172,14 @@ app.get('/api/messages/private/:targetUserId', async (req, res) => {
   const myId = user.id;
   const targetId = req.params.targetUserId;
 
+  // Mark received messages from this target user as read
+  await supabase
+    .from('messages')
+    .update({ is_read: true })
+    .eq('sender_id', targetId)
+    .eq('receiver_id', myId)
+    .eq('is_read', false);
+
   const { data } = await supabase
     .from('messages')
     .select('*')
@@ -181,6 +189,30 @@ app.get('/api/messages/private/:targetUserId', async (req, res) => {
     .limit(200);
 
   res.json(data || []);
+});
+
+// Mark messages from a sender as read
+app.post('/api/messages/read', async (req, res) => {
+  const user = getUserFromToken(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
+
+  const myId = user.id;
+  const { senderId } = req.body;
+  if (!senderId) return res.status(400).json({ error: 'senderId is required' });
+
+  const { data, error } = await supabase
+    .from('messages')
+    .update({ is_read: true })
+    .eq('sender_id', senderId)
+    .eq('receiver_id', myId)
+    .eq('is_read', false)
+    .select();
+
+  if (error) {
+    return res.status(500).json({ error: 'Gagal memperbarui status baca: ' + error.message });
+  }
+
+  res.json({ success: true, updated: data });
 });
 
 // Send message

@@ -254,14 +254,18 @@
             <div id="upload-progress-fill" class="upload-progress-fill"></div>
           </div>
         </div>
-        <div class="chat-input-wrapper">
+        <div class="chat-input-wrapper" style="position: relative;">
           <input type="file" id="file-input" style="display: none;">
           <button id="attach-btn" class="attach-btn" title="Kirim Gambar / File">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
             </svg>
           </button>
+          <button id="emoji-btn" class="attach-btn" title="Pilih Emoji" type="button" style="padding: 0 4px 0 0;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px;"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+          </button>
           <textarea id="message-input" placeholder="Ketik pesan..." rows="1" maxlength="2000"></textarea>
+          <div id="emoji-picker" class="emoji-picker" style="display: none;"></div>
           <button id="send-btn" class="send-btn" title="Kirim" disabled>
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

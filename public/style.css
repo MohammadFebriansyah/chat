@@ -831,3 +831,60 @@ body {
   border-color: var(--accent-light) !important;
   background: rgba(255, 255, 255, 0.08) !important;
 }
+
+/* ─── Emoji Picker & Read Receipts ─── */
+.emoji-picker {
+  position: absolute;
+  bottom: 65px;
+  left: 5px;
+  width: 290px;
+  max-height: 220px;
+  background: rgba(30, 39, 46, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 12px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  display: none;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  animation: emojiFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.emoji-picker.show {
+  display: grid;
+}
+@keyframes emojiFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.emoji-item {
+  font-size: 1.4rem;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.15s ease, background 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  aspect-ratio: 1;
+}
+.emoji-item:hover {
+  transform: scale(1.25);
+  background: rgba(255, 255, 255, 0.1);
+}
+.msg-status-receipt {
+  font-size: 0.7rem;
+  margin-left: 5px;
+  letter-spacing: -1px;
+  font-weight: 800;
+  display: inline-block;
+  vertical-align: middle;
+}
+.msg-status-receipt.sent {
+  color: rgba(255, 255, 255, 0.4);
+}
+.msg-status-receipt.read {
+  color: #00d2d3; /* vibrant modern cyan receipt */
+}

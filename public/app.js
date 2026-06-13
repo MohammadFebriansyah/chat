@@ -77,6 +77,9 @@
   const searchMessagesInput = $('#search-messages-input');
   const searchMessagesBtn = $('#search-messages-btn');
 
+  const emojiBtn = $('#emoji-btn');
+  const emojiPicker = $('#emoji-picker');
+
   const contextMenu = $('#context-menu');
   const ctxReply = $('#ctx-reply');
   const ctxEdit = $('#ctx-edit');
@@ -265,6 +268,13 @@
 
       if (activeChat.type === 'private' && activeChat.userId === partnerId) {
         appendMessage(msg);
+        if (msg.sender_id !== currentUser.id) {
+          fetch('/api/messages/read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ senderId: msg.sender_id })
+          }).catch(err => console.error('Gagal memperbarui status baca:', err));
+        }
       } else {
         unreadCounts[partnerId] = (unreadCounts[partnerId] || 0) + 1;
         updateUnreadBadge(partnerId);
@@ -556,11 +566,15 @@
     }
 
     const editedBadge = msg.is_edited ? `<span class="msg-edited-badge">(diedit)</span>` : '';
+    let statusHTML = '';
+    if (isMine && !msg.is_global) {
+      statusHTML = `<span class="msg-status-receipt ${msg.is_read ? 'read' : 'sent'}" title="${msg.is_read ? 'Dibaca' : 'Terkirim'}">${msg.is_read ? '✓✓' : '✓'}</span>`;
+    }
 
     div.innerHTML = `
       ${senderLabel}
       ${contentHTML}
-      <div class="msg-time">${time}${editedBadge}</div>
+      <div class="msg-time">${time}${editedBadge}${statusHTML}</div>
     `;
 
     // Add right-click listener
@@ -938,7 +952,23 @@
         const badge = document.createElement('span');
         badge.className = 'msg-edited-badge';
         badge.textContent = '(diedit)';
-        timeEl.appendChild(badge);
+        timeEl.insertBefore(badge, timeEl.querySelector('.msg-status-receipt') || null);
+      }
+    }
+
+    // Update read receipt status
+    const isMine = msg.sender_id === currentUser.id;
+    if (isMine && !msg.is_global) {
+      const timeEl = msgEl.querySelector('.msg-time');
+      if (timeEl) {
+        let receiptEl = timeEl.querySelector('.msg-status-receipt');
+        if (!receiptEl) {
+          receiptEl = document.createElement('span');
+          timeEl.appendChild(receiptEl);
+        }
+        receiptEl.className = `msg-status-receipt ${msg.is_read ? 'read' : 'sent'}`;
+        receiptEl.textContent = msg.is_read ? '✓✓' : '✓';
+        receiptEl.title = msg.is_read ? 'Dibaca' : 'Terkirim';
       }
     }
   }
@@ -1234,6 +1264,54 @@
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  // ─── Emoji Picker ──────────────────────────────────
+  if (emojiBtn && emojiPicker && messageInput) {
+    const emojis = [
+      '😂', '🤣', '😃', '😄', '😅', '😉', '😊', '😍', '🥰', '😘', '😋', '😛', '😜', '🤪', '🤔', '🤫', '😐', '😑', '😬', '🙄', '😔', '🥱', '😴', '😷', '🤒', '🤢',
+      '👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👏', '🙌', '👐', '🤲', '🤝', '🙏',
+      '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '💬', '💭'
+    ];
+
+    emojis.forEach(emoji => {
+      const span = document.createElement('span');
+      span.className = 'emoji-item';
+      span.textContent = emoji;
+      span.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const startPos = messageInput.selectionStart;
+        const endPos = messageInput.selectionEnd;
+        const text = messageInput.value;
+        
+        messageInput.value = text.substring(0, startPos) + emoji + text.substring(endPos);
+        messageInput.focus();
+        
+        // Restore cursor position
+        const newCursorPos = startPos + emoji.length;
+        messageInput.setSelectionRange(newCursorPos, newCursorPos);
+        
+        // Trigger resize and send state
+        updateSendButtonState();
+        messageInput.style.height = 'auto';
+        messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+        
+        emojiPicker.classList.remove('show');
+      });
+      emojiPicker.appendChild(span);
+    });
+
+    emojiBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      emojiPicker.classList.toggle('show');
+    });
+
+    // Close picker when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!emojiPicker.contains(e.target) && e.target !== emojiBtn && !emojiBtn.contains(e.target)) {
+        emojiPicker.classList.remove('show');
+      }
+    });
   }
 
   // ─── Search Navigation & UX ────────────────────────
