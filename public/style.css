@@ -259,7 +259,8 @@ body {
 .chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
 .chat-header {
-  padding: 12px 20px; display: flex; align-items: center; gap: 12px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-right, 0px)) 12px calc(20px + env(safe-area-inset-left, 0px));
+  display: flex; align-items: center; gap: 12px;
   border-bottom: 1px solid var(--border);
   background: rgba(15,14,23,0.8); backdrop-filter: blur(12px);
 }
@@ -357,7 +358,7 @@ body {
 
 /* Input */
 .chat-input-area {
-  padding: 12px 20px 16px;
+  padding: 12px calc(20px + env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px));
   border-top: 1px solid var(--border);
   background: var(--bg-primary);
 }
@@ -405,6 +406,14 @@ body {
   .message { max-width: 85%; }
   .auth-container { padding: 16px; }
   .auth-form { padding: 24px; }
+  .sidebar-header {
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+    padding-left: calc(20px + env(safe-area-inset-left, 0px));
+  }
+  .sidebar-footer {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+  }
 }
 
 /* Overlay for mobile sidebar */
