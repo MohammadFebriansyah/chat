@@ -59,6 +59,10 @@
   const editModeText = $('#edit-mode-text');
   const cancelEditBtn = $('#cancel-edit-btn');
 
+  const imageModal = $('#image-modal');
+  const imageModalImg = $('#image-modal-img');
+  const imageModalCaption = $('#image-modal-caption');
+
   const contextMenu = $('#context-menu');
   const ctxReply = $('#ctx-reply');
   const ctxEdit = $('#ctx-edit');
@@ -463,9 +467,9 @@
       if (msg.file_url) {
         if (msg.file_type && msg.file_type.startsWith('image/')) {
           contentHTML += `
-            <a href="${msg.file_url}" target="_blank" class="msg-image-wrap">
+            <div class="msg-image-wrap chat-preview-img-btn" style="cursor: pointer;">
               <img src="${msg.file_url}" alt="${escapeHTML(msg.file_name)}" class="msg-image">
-            </a>
+            </div>
           `;
         } else {
           contentHTML += `
@@ -534,6 +538,15 @@
         } else {
           alert('Pesan asli tidak ditemukan di riwayat saat ini.');
         }
+      });
+    }
+
+    // Image preview click handler
+    const imgBtn = div.querySelector('.chat-preview-img-btn');
+    if (imgBtn) {
+      imgBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openImagePreview(msg.file_url, msg.file_name);
       });
     }
 
@@ -944,6 +957,23 @@
     messageInput.value = '';
     messageInput.style.height = 'auto';
     updateSendButtonState();
+  });
+
+  // ─── Image Preview Lightbox ─────────────────────────
+  function openImagePreview(url, filename) {
+    imageModalImg.src = url;
+    imageModalCaption.textContent = filename || 'Gambar';
+    imageModal.classList.add('active');
+  }
+
+  imageModal.addEventListener('click', () => {
+    imageModal.classList.remove('active');
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      imageModal.classList.remove('active');
+    }
   });
 
   function uuidv4() {
