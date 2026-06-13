@@ -73,6 +73,10 @@
   const profileError = $('#profile-error');
   const profileSuccess = $('#profile-success');
 
+  const searchUsersInput = $('#search-users-input');
+  const searchMessagesInput = $('#search-messages-input');
+  const searchMessagesBtn = $('#search-messages-btn');
+
   const contextMenu = $('#context-menu');
   const ctxReply = $('#ctx-reply');
   const ctxEdit = $('#ctx-edit');
@@ -352,7 +356,12 @@
 
   // ─── Render Users List ─────────────────────────────
   function renderUsersList(users) {
-    const sortedUsers = [...users].sort((a, b) => {
+    const query = (searchUsersInput && searchUsersInput.value) ? searchUsersInput.value.trim().toLowerCase() : '';
+    const filteredUsers = query
+      ? users.filter(u => u.username.toLowerCase().includes(query))
+      : users;
+
+    const sortedUsers = [...filteredUsers].sort((a, b) => {
       const aOnline = onlineUserIds.has(a.id);
       const bOnline = onlineUserIds.has(b.id);
       if (aOnline && !bOnline) return -1;
@@ -408,6 +417,11 @@
     activeChat = { type, userId: userId || null, username: username || null };
     hideTyping();
     renderedMessageIds.clear();
+
+    if (searchMessagesInput) {
+      searchMessagesInput.style.display = 'none';
+      searchMessagesInput.value = '';
+    }
 
     // Clear reply & edit states
     replyingTo = null;
@@ -599,6 +613,14 @@
         e.stopPropagation();
         openImagePreview(msg.file_url, msg.file_name);
       });
+    }
+
+    if (searchMessagesInput && searchMessagesInput.style.display !== 'none' && searchMessagesInput.value) {
+      const query = searchMessagesInput.value.trim().toLowerCase();
+      const text = msg.content ? msg.content.toLowerCase() : '';
+      if (query && !text.includes(query)) {
+        div.style.display = 'none';
+      }
     }
 
     if (scroll) scrollToBottom();
@@ -1212,6 +1234,43 @@
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  // ─── Search Navigation & UX ────────────────────────
+  if (searchUsersInput) {
+    searchUsersInput.addEventListener('input', () => {
+      renderUsersList(allUsers);
+    });
+  }
+
+  if (searchMessagesBtn && searchMessagesInput) {
+    searchMessagesBtn.addEventListener('click', () => {
+      if (searchMessagesInput.style.display === 'none' || !searchMessagesInput.style.display) {
+        searchMessagesInput.style.display = 'block';
+        searchMessagesInput.focus();
+      } else {
+        searchMessagesInput.style.display = 'none';
+        searchMessagesInput.value = '';
+        filterMessages('');
+      }
+    });
+
+    searchMessagesInput.addEventListener('input', () => {
+      filterMessages(searchMessagesInput.value.trim().toLowerCase());
+    });
+  }
+
+  function filterMessages(query) {
+    const messages = chatMessages.querySelectorAll('.message');
+    messages.forEach(msgDiv => {
+      const textEl = msgDiv.querySelector('.msg-text');
+      const text = textEl ? textEl.textContent.toLowerCase() : '';
+      if (!query || text.includes(query)) {
+        msgDiv.style.display = 'flex';
+      } else {
+        msgDiv.style.display = 'none';
+      }
+    });
   }
 
   // ─── Auto-Login Check ─────────────────────────────

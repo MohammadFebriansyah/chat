@@ -824,3 +824,10 @@ body {
   border-color: #a29bfe;
   transform: scale(1.05);
 }
+
+/* ─── Search Inputs Focus Styles ─── */
+#search-users-input:focus,
+#search-messages-input:focus {
+  border-color: var(--accent-light) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
