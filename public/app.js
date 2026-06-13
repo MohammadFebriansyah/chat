@@ -140,6 +140,11 @@
     myAvatar.style.background = currentUser.avatarColor;
     myAvatar.textContent = currentUser.username[0].toUpperCase();
 
+    // Request notification permission
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
     // Init Supabase client
     await initSupabase();
 
@@ -173,11 +178,12 @@
   // ─── Handle Realtime Message ───────────────────────
   function handleNewMessage(msg) {
     // Don't show messages we just sent (already shown optimistically)
-    // Actually, we'll use a set to track sent message IDs
     if (sentMessageIds.has(msg.id)) {
       sentMessageIds.delete(msg.id);
       return;
     }
+
+    const isFromMe = msg.sender_id === currentUser.id;
 
     if (msg.is_global) {
       if (activeChat.type === 'global') {
@@ -201,6 +207,69 @@
         updateUnreadBadge(partnerId);
       }
     }
+
+    // Play notification sound and show browser notification
+    if (!isFromMe) {
+      const isChatActive = msg.is_global 
+        ? activeChat.type === 'global' 
+        : (activeChat.type === 'private' && activeChat.userId === msg.sender_id);
+
+      if (document.hidden || !isChatActive) {
+        playNotificationSound();
+        showBrowserNotification(msg);
+      }
+    }
+  }
+
+  // ─── Notification & Sound Utilities ────────────────
+  function playNotificationSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.type = 'sine';
+      // Pleasant double-beep chime
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1); // A5
+
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.25);
+    } catch (e) {
+      console.error('Failed to play sound:', e);
+    }
+  }
+
+  function showBrowserNotification(msg) {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+    const title = msg.is_global 
+      ? `Pesan baru di Chat Global` 
+      : `Pesan pribadi dari ${msg.sender_username}`;
+
+    const options = {
+      body: msg.is_global ? `${msg.sender_username}: ${msg.content}` : msg.content,
+      tag: msg.is_global ? 'global' : `private-${msg.sender_id}`,
+      renotify: true
+    };
+
+    const notification = new Notification(title, options);
+    notification.onclick = () => {
+      window.focus();
+      if (msg.is_global) {
+        switchChat('global');
+      } else {
+        const u = allUsers.find(user => user.id === msg.sender_id);
+        const avatarColor = u ? u.avatar_color : '#6C5CE7';
+        switchChat('private', msg.sender_id, msg.sender_username, avatarColor);
+      }
+    };
   }
 
   // Track sent messages to avoid duplicates
