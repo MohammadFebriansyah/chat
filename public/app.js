@@ -13,6 +13,8 @@
   let selectedFile = null;
   let uploadedFileUrl = null;
   let progressInterval = null;
+  let replyingTo = null;
+  let editingMessage = null;
 
   // ─── DOM Elements ──────────────────────────────────
   const $ = (sel) => document.querySelector(sel);
@@ -46,6 +48,20 @@
   const previewSize = $('#preview-size');
   const cancelUploadBtn = $('#cancel-upload-btn');
   const uploadProgressFill = $('#upload-progress-fill');
+
+  const replyPreviewPanel = $('#reply-preview-panel');
+  const replyPreviewSender = $('#reply-preview-sender');
+  const replyPreviewText = $('#reply-preview-text');
+  const cancelReplyBtn = $('#cancel-reply-btn');
+
+  const editModeIndicator = $('#edit-mode-indicator');
+  const editModeText = $('#edit-mode-text');
+  const cancelEditBtn = $('#cancel-edit-btn');
+
+  const contextMenu = $('#context-menu');
+  const ctxReply = $('#ctx-reply');
+  const ctxEdit = $('#ctx-edit');
+  const ctxDelete = $('#ctx-delete');
 
   // ─── Auth Switching ────────────────────────────────
   $('#show-register').addEventListener('click', (e) => {
@@ -177,9 +193,13 @@
       .channel('chat-messages')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
+        { event: '*', schema: 'public', table: 'messages' },
         (payload) => {
-          handleNewMessage(payload.new);
+          if (payload.eventType === 'INSERT') {
+            handleNewMessage(payload.new);
+          } else if (payload.eventType === 'UPDATE') {
+            handleUpdatedMessage(payload.new);
+          }
         }
       )
       .subscribe();
@@ -338,6 +358,12 @@
     hideTyping();
     renderedMessageIds.clear();
 
+    // Clear reply & edit states
+    replyingTo = null;
+    editingMessage = null;
+    replyPreviewPanel.style.display = 'none';
+    editModeIndicator.style.display = 'none';
+
     // Update sidebar active states
     document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
     if (type === 'global') {
@@ -403,48 +429,113 @@
     const isMine = msg.sender_id === currentUser.id;
     const div = document.createElement('div');
     div.className = `message ${isMine ? 'sent' : 'received'}`;
+    div.id = `msg-${msg.id}`;
 
     const time = new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
     const senderLabel = activeChat.type === 'global' && !isMine
       ? `<div class="msg-sender">${escapeHTML(msg.sender_username)}</div>` : '';
 
     let contentHTML = '';
-    if (msg.content) {
-      contentHTML += `<div class="msg-text">${escapeHTML(msg.content)}</div>`;
-    }
 
-    if (msg.file_url) {
-      if (msg.file_type && msg.file_type.startsWith('image/')) {
+    if (msg.is_deleted) {
+      contentHTML = `
+        <div class="message-deleted">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          Pesan ini telah dihapus
+        </div>
+      `;
+    } else {
+      // Reply reference header
+      if (msg.reply_to_id) {
         contentHTML += `
-          <a href="${msg.file_url}" target="_blank" class="msg-image-wrap">
-            <img src="${msg.file_url}" alt="${escapeHTML(msg.file_name)}" class="msg-image">
-          </a>
-        `;
-      } else {
-        contentHTML += `
-          <div class="msg-file-wrap">
-            <div class="msg-file-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-            </div>
-            <div class="msg-file-info">
-              <span class="msg-file-name" title="${escapeHTML(msg.file_name)}">${escapeHTML(msg.file_name)}</span>
-              <span class="msg-file-size">${formatBytes(msg.file_size)}</span>
-            </div>
-            <a href="${msg.file_url}" download="${escapeHTML(msg.file_name)}" target="_blank" class="msg-file-dl" title="Download">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-            </a>
+          <div class="msg-reply-ref" data-target-id="${msg.reply_to_id}">
+            <div class="msg-reply-sender">${escapeHTML(msg.reply_to_username)}</div>
+            <div class="msg-reply-text">${escapeHTML(msg.reply_to_content)}</div>
           </div>
         `;
       }
+
+      if (msg.content) {
+        contentHTML += `<div class="msg-text">${escapeHTML(msg.content)}</div>`;
+      }
+
+      if (msg.file_url) {
+        if (msg.file_type && msg.file_type.startsWith('image/')) {
+          contentHTML += `
+            <a href="${msg.file_url}" target="_blank" class="msg-image-wrap">
+              <img src="${msg.file_url}" alt="${escapeHTML(msg.file_name)}" class="msg-image">
+            </a>
+          `;
+        } else {
+          contentHTML += `
+            <div class="msg-file-wrap">
+              <div class="msg-file-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+              </div>
+              <div class="msg-file-info">
+                <span class="msg-file-name" title="${escapeHTML(msg.file_name)}">${escapeHTML(msg.file_name)}</span>
+                <span class="msg-file-size">${formatBytes(msg.file_size)}</span>
+              </div>
+              <a href="${msg.file_url}" download="${escapeHTML(msg.file_name)}" target="_blank" class="msg-file-dl" title="Download">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              </a>
+            </div>
+          `;
+        }
+      }
     }
+
+    const editedBadge = msg.is_edited ? `<span class="msg-edited-badge">(diedit)</span>` : '';
 
     div.innerHTML = `
       ${senderLabel}
       ${contentHTML}
-      <div class="msg-time">${time}</div>
+      <div class="msg-time">${time}${editedBadge}</div>
     `;
 
+    // Add right-click listener
+    div.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      showContextMenu(e, msg);
+    });
+
+    // Add long-press listeners for mobile
+    let touchTimeout;
+    div.addEventListener('touchstart', (e) => {
+      touchTimeout = setTimeout(() => {
+        showContextMenu(e, msg);
+      }, 600);
+    }, { passive: true });
+
+    div.addEventListener('touchend', () => {
+      clearTimeout(touchTimeout);
+    });
+
+    div.addEventListener('touchmove', () => {
+      clearTimeout(touchTimeout);
+    });
+
     chatMessages.appendChild(div);
+
+    // Scroll reply reference click handler
+    const replyRef = div.querySelector('.msg-reply-ref');
+    if (replyRef) {
+      replyRef.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const targetId = replyRef.dataset.targetId;
+        const targetEl = document.getElementById(`msg-${targetId}`);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          targetEl.classList.add('highlight-pulse');
+          setTimeout(() => {
+            targetEl.classList.remove('highlight-pulse');
+          }, 2000);
+        } else {
+          alert('Pesan asli tidak ditemukan di riwayat saat ini.');
+        }
+      });
+    }
+
     if (scroll) scrollToBottom();
   }
 
@@ -481,16 +572,49 @@
   // ─── Send Message ──────────────────────────────────
   async function sendMessage() {
     const content = messageInput.value.trim();
-    if (!content && !uploadedFileUrl) return;
+    if (!content && !uploadedFileUrl && !editingMessage) return;
 
     sendBtn.disabled = true;
+
+    // Handle Edit Message
+    if (editingMessage) {
+      const editId = editingMessage.id;
+      // Reset input immediately
+      messageInput.value = '';
+      messageInput.style.height = 'auto';
+      editingMessage = null;
+      editModeIndicator.style.display = 'none';
+
+      try {
+        const res = await fetch(`/api/messages/${editId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        // Realtime will update the message block automatically
+      } catch (err) {
+        console.error('Failed to edit message:', err);
+        alert('Gagal mengedit pesan: ' + err.message);
+      } finally {
+        updateSendButtonState();
+      }
+      return;
+    }
+
+    // Otherwise, handle new message (normal send or reply)
     messageInput.value = '';
     messageInput.style.height = 'auto';
 
     const tempFileUrl = uploadedFileUrl;
     const tempFile = selectedFile;
+    const tempReplyTo = replyingTo;
     
     clearAttachment();
+    replyingTo = null;
+    replyPreviewPanel.style.display = 'none';
 
     try {
       const body = {
@@ -501,7 +625,10 @@
         fileUrl: tempFileUrl,
         fileName: tempFile ? tempFile.name : null,
         fileSize: tempFile ? tempFile.size : null,
-        fileType: tempFile ? tempFile.type : null
+        fileType: tempFile ? tempFile.type : null,
+        replyToId: tempReplyTo ? tempReplyTo.id : null,
+        replyToUsername: tempReplyTo ? tempReplyTo.username : null,
+        replyToContent: tempReplyTo ? tempReplyTo.content : null
       };
 
       const res = await fetch('/api/messages', {
@@ -639,8 +766,181 @@
   }
 
   function updateSendButtonState() {
-    sendBtn.disabled = !messageInput.value.trim() && !uploadedFileUrl;
+    if (editingMessage) {
+      sendBtn.disabled = !messageInput.value.trim();
+    } else {
+      sendBtn.disabled = !messageInput.value.trim() && !uploadedFileUrl;
+    }
   }
+
+  // ─── Context Menu & Actions ─────────────────────────
+  function showContextMenu(e, msg) {
+    if (msg.is_deleted) return;
+
+    let x, y;
+    if (e.touches && e.touches.length > 0) {
+      x = e.touches[0].clientX;
+      y = e.touches[0].clientY;
+    } else {
+      x = e.clientX;
+      y = e.clientY;
+    }
+
+    contextMenu.dataset.activeMsgId = msg.id;
+    contextMenu.dataset.activeMsgSenderId = msg.sender_id;
+    contextMenu.dataset.activeMsgSenderUsername = msg.sender_username;
+    
+    let previewText = msg.content || '';
+    if (!previewText && msg.file_url) {
+      previewText = msg.file_type && msg.file_type.startsWith('image/') ? '📷 Gambar' : `📎 File: ${msg.file_name}`;
+    }
+    contextMenu.dataset.activeMsgPreview = previewText;
+
+    const isMine = msg.sender_id === currentUser.id;
+    if (isMine) {
+      ctxEdit.style.display = 'flex';
+      ctxDelete.style.display = 'flex';
+    } else {
+      ctxEdit.style.display = 'none';
+      ctxDelete.style.display = 'none';
+    }
+
+    contextMenu.style.display = 'block';
+    const menuWidth = contextMenu.offsetWidth;
+    const menuHeight = contextMenu.offsetHeight;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    if (x + menuWidth > windowWidth) {
+      x = windowWidth - menuWidth - 10;
+    }
+    if (y + menuHeight > windowHeight) {
+      y = windowHeight - menuHeight - 10;
+    }
+
+    contextMenu.style.left = `${x}px`;
+    contextMenu.style.top = `${y}px`;
+
+    e.stopPropagation();
+  }
+
+  function handleUpdatedMessage(msg) {
+    const msgEl = document.getElementById(`msg-${msg.id}`);
+    if (!msgEl) return;
+
+    if (msg.is_deleted) {
+      msgEl.innerHTML = `
+        <div class="message-deleted">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          Pesan ini telah dihapus
+        </div>
+        <div class="msg-time">${new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
+      `;
+      return;
+    }
+
+    if (msg.is_edited) {
+      const textEl = msgEl.querySelector('.msg-text');
+      if (textEl) {
+        textEl.textContent = msg.content;
+      }
+      
+      const timeEl = msgEl.querySelector('.msg-time');
+      if (timeEl && !timeEl.querySelector('.msg-edited-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'msg-edited-badge';
+        badge.textContent = '(diedit)';
+        timeEl.appendChild(badge);
+      }
+    }
+  }
+
+  // Hide context menu on outer clicks
+  document.addEventListener('click', () => {
+    contextMenu.style.display = 'none';
+  });
+
+  // Action: Reply click
+  ctxReply.addEventListener('click', () => {
+    const id = contextMenu.dataset.activeMsgId;
+    const username = contextMenu.dataset.activeMsgSenderUsername;
+    const preview = contextMenu.dataset.activeMsgPreview;
+
+    replyingTo = { id, username, content: preview };
+    editingMessage = null;
+
+    editModeIndicator.style.display = 'none';
+    replyPreviewSender.textContent = `Balas ke ${username}`;
+    replyPreviewText.textContent = preview;
+    replyPreviewPanel.style.display = 'flex';
+
+    messageInput.focus();
+    contextMenu.style.display = 'none';
+  });
+
+  // Action: Edit click
+  ctxEdit.addEventListener('click', () => {
+    const id = contextMenu.dataset.activeMsgId;
+    const msgEl = document.getElementById(`msg-${id}`);
+    if (!msgEl) return;
+    
+    const textEl = msgEl.querySelector('.msg-text');
+    const originalText = textEl ? textEl.textContent : '';
+
+    if (!originalText) {
+      alert('Hanya pesan teks yang dapat diedit.');
+      contextMenu.style.display = 'none';
+      return;
+    }
+
+    editingMessage = { id, content: originalText };
+    replyingTo = null;
+
+    replyPreviewPanel.style.display = 'none';
+    editModeText.textContent = originalText;
+    editModeIndicator.style.display = 'flex';
+
+    messageInput.value = originalText;
+    messageInput.style.height = 'auto';
+    messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+    messageInput.focus();
+    
+    contextMenu.style.display = 'none';
+    updateSendButtonState();
+  });
+
+  // Action: Delete click
+  ctxDelete.addEventListener('click', async () => {
+    const id = contextMenu.dataset.activeMsgId;
+    contextMenu.style.display = 'none';
+
+    if (!confirm('Apakah Anda yakin ingin menghapus pesan ini?')) return;
+
+    try {
+      const res = await fetch(`/api/messages/${id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+    } catch (err) {
+      alert('Gagal menghapus pesan: ' + err.message);
+    }
+  });
+
+  // Cancel reply & edit panels
+  cancelReplyBtn.addEventListener('click', () => {
+    replyingTo = null;
+    replyPreviewPanel.style.display = 'none';
+    updateSendButtonState();
+  });
+
+  cancelEditBtn.addEventListener('click', () => {
+    editingMessage = null;
+    editModeIndicator.style.display = 'none';
+    messageInput.value = '';
+    messageInput.style.height = 'auto';
+    updateSendButtonState();
+  });
 
   function uuidv4() {
     return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>

@@ -200,6 +200,28 @@
 
       <!-- Message Input -->
       <div class="chat-input-area">
+        <!-- Reply Preview Panel -->
+        <div id="reply-preview-panel" class="reply-preview-panel">
+          <div class="reply-preview-content">
+            <span id="reply-preview-sender" class="reply-preview-sender">Balas ke username</span>
+            <span id="reply-preview-text" class="reply-preview-text">Isi pesan yang dibalas...</span>
+          </div>
+          <button id="cancel-reply-btn" class="cancel-reply-btn" title="Batal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Edit Mode Indicator -->
+        <div id="edit-mode-indicator" class="edit-mode-indicator">
+          <div class="edit-mode-content">
+            <span class="edit-mode-title">Edit Pesan</span>
+            <span id="edit-mode-text" class="edit-mode-text">Isi pesan asli...</span>
+          </div>
+          <button id="cancel-edit-btn" class="cancel-reply-btn" title="Batal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
         <div id="upload-preview" class="upload-preview" style="display: none;">
           <div class="preview-content">
             <div class="preview-file-icon">
@@ -234,6 +256,22 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Floating Context Menu -->
+  <div id="context-menu" class="context-menu">
+    <button id="ctx-reply" class="context-menu-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+      Balas
+    </button>
+    <button id="ctx-edit" class="context-menu-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Edit
+    </button>
+    <button id="ctx-delete" class="context-menu-item danger-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+      Hapus
+    </button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>

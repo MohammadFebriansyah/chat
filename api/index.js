@@ -188,7 +188,20 @@ app.post('/api/messages', async (req, res) => {
   const user = getUserFromToken(req);
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
 
-  const { content, receiverId, receiverUsername, isGlobal, fileUrl, fileName, fileSize, fileType } = req.body;
+  const {
+    content,
+    receiverId,
+    receiverUsername,
+    isGlobal,
+    fileUrl,
+    fileName,
+    fileSize,
+    fileType,
+    replyToId,
+    replyToUsername,
+    replyToContent
+  } = req.body;
+
   if ((!content || !content.trim()) && !fileUrl) {
     return res.status(400).json({ error: 'Pesan atau file tidak boleh kosong' });
   }
@@ -204,13 +217,103 @@ app.post('/api/messages', async (req, res) => {
     file_url: fileUrl || null,
     file_name: fileName || null,
     file_size: fileSize || null,
-    file_type: fileType || null
+    file_type: fileType || null,
+    reply_to_id: replyToId || null,
+    reply_to_username: replyToUsername || null,
+    reply_to_content: replyToContent || null
   };
 
   const { data, error } = await supabase.from('messages').insert(msg).select().single();
 
   if (error) {
     return res.status(500).json({ error: 'Gagal mengirim pesan: ' + error.message });
+  }
+
+  res.json(data);
+});
+
+// Edit message
+app.put('/api/messages/:id', async (req, res) => {
+  const user = getUserFromToken(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
+
+  const { content } = req.body;
+  if (!content || !content.trim()) {
+    return res.status(400).json({ error: 'Isi pesan tidak boleh kosong' });
+  }
+
+  // Fetch message to verify owner
+  const { data: existing, error: fetchErr } = await supabase
+    .from('messages')
+    .select('sender_id, is_deleted')
+    .eq('id', req.params.id)
+    .maybeSingle();
+
+  if (fetchErr || !existing) {
+    return res.status(404).json({ error: 'Pesan tidak ditemukan' });
+  }
+  if (existing.sender_id !== user.id) {
+    return res.status(403).json({ error: 'Anda tidak diizinkan mengubah pesan ini' });
+  }
+  if (existing.is_deleted) {
+    return res.status(400).json({ error: 'Pesan yang sudah dihapus tidak bisa diubah' });
+  }
+
+  const { data, error } = await supabase
+    .from('messages')
+    .update({
+      content: content.trim(),
+      is_edited: true
+    })
+    .eq('id', req.params.id)
+    .select()
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: 'Gagal mengubah pesan: ' + error.message });
+  }
+
+  res.json(data);
+});
+
+// Soft delete message
+app.delete('/api/messages/:id', async (req, res) => {
+  const user = getUserFromToken(req);
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
+
+  // Fetch message to verify owner
+  const { data: existing, error: fetchErr } = await supabase
+    .from('messages')
+    .select('sender_id, is_deleted')
+    .eq('id', req.params.id)
+    .maybeSingle();
+
+  if (fetchErr || !existing) {
+    return res.status(404).json({ error: 'Pesan tidak ditemukan' });
+  }
+  if (existing.sender_id !== user.id) {
+    return res.status(403).json({ error: 'Anda tidak diizinkan menghapus pesan ini' });
+  }
+  if (existing.is_deleted) {
+    return res.status(400).json({ error: 'Pesan ini sudah dihapus' });
+  }
+
+  const { data, error } = await supabase
+    .from('messages')
+    .update({
+      content: 'Pesan ini telah dihapus',
+      file_url: null,
+      file_name: null,
+      file_size: null,
+      file_type: null,
+      is_deleted: true
+    })
+     .eq('id', req.params.id)
+     .select()
+     .single();
+
+  if (error) {
+    return res.status(500).json({ error: 'Gagal menghapus pesan: ' + error.message });
   }
 
   res.json(data);
