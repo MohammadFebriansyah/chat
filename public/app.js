@@ -15,6 +15,7 @@
   let progressInterval = null;
   let replyingTo = null;
   let editingMessage = null;
+  let contextMenuLastShown = 0;
 
   // ─── DOM Elements ──────────────────────────────────
   const $ = (sel) => document.querySelector(sel);
@@ -776,6 +777,7 @@
   // ─── Context Menu & Actions ─────────────────────────
   function showContextMenu(e, msg) {
     if (msg.is_deleted) return;
+    contextMenuLastShown = Date.now();
 
     let x, y;
     if (e.touches && e.touches.length > 0) {
@@ -855,9 +857,11 @@
     }
   }
 
-  // Hide context menu on outer clicks
-  document.addEventListener('click', () => {
-    contextMenu.style.display = 'none';
+  // Hide context menu on outer pointer actions
+  document.addEventListener('pointerdown', (e) => {
+    if (!contextMenu.contains(e.target)) {
+      contextMenu.style.display = 'none';
+    }
   });
 
   // Action: Reply click
