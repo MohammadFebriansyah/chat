@@ -187,12 +187,6 @@
 
   // ─── Handle Realtime Message ───────────────────────
   function handleNewMessage(msg) {
-    // Don't show messages we just sent (already shown optimistically)
-    if (sentMessageIds.has(msg.id)) {
-      sentMessageIds.delete(msg.id);
-      return;
-    }
-
     const isFromMe = msg.sender_id === currentUser.id;
 
     if (msg.is_global) {
@@ -282,8 +276,8 @@
     };
   }
 
-  // Track sent messages to avoid duplicates
-  const sentMessageIds = new Set();
+  // Track rendered messages to avoid duplicates
+  const renderedMessageIds = new Set();
 
   // ─── Load Users ────────────────────────────────────
   async function loadUsers() {
@@ -333,6 +327,7 @@
   function switchChat(type, userId, username, avatarColor) {
     activeChat = { type, userId: userId || null, username: username || null };
     hideTyping();
+    renderedMessageIds.clear();
 
     // Update sidebar active states
     document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
@@ -377,6 +372,7 @@
   // ─── Render Messages ──────────────────────────────
   function renderMessages(messages) {
     chatMessages.innerHTML = '';
+    renderedMessageIds.clear();
     if (messages.length === 0) {
       chatWelcome.style.display = 'block';
       chatMessages.appendChild(chatWelcome);
@@ -388,6 +384,9 @@
   }
 
   function appendMessage(msg, scroll = true) {
+    if (renderedMessageIds.has(msg.id)) return;
+    renderedMessageIds.add(msg.id);
+
     if (chatWelcome.style.display !== 'none') {
       chatWelcome.style.display = 'none';
     }
@@ -505,7 +504,6 @@
       const msg = await res.json();
 
       if (res.ok) {
-        sentMessageIds.add(msg.id);
         appendMessage(msg);
       }
     } catch (err) {
