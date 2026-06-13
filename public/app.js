@@ -535,14 +535,13 @@
     fileInput.click();
   });
 
-  fileInput.addEventListener('change', async () => {
-    const file = fileInput.files[0];
+  async function handleFileSelected(file) {
     if (!file) return;
 
     clearAttachment();
 
     selectedFile = file;
-    previewName.textContent = file.name;
+    previewName.textContent = file.name || 'Pasted File';
     previewSize.textContent = formatBytes(file.size);
     uploadPreview.style.display = 'block';
     uploadProgressFill.style.width = '0%';
@@ -551,7 +550,13 @@
     startProgressAnimation();
 
     try {
-      const ext = file.name.split('.').pop();
+      // Determine file extension
+      let ext = 'png';
+      if (file.name && file.name.includes('.')) {
+        ext = file.name.split('.').pop();
+      } else if (file.type) {
+        ext = file.type.split('/').pop();
+      }
       const path = `attachments/${uuidv4()}.${ext}`;
 
       const { data, error } = await supabaseClient.storage
@@ -574,6 +579,23 @@
       console.error('Upload failed:', err);
       alert('Gagal mengupload file: ' + err.message);
       clearAttachment();
+    }
+  }
+
+  fileInput.addEventListener('change', () => {
+    handleFileSelected(fileInput.files[0]);
+  });
+
+  messageInput.addEventListener('paste', (e) => {
+    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    for (let index in items) {
+      const item = items[index];
+      if (item.kind === 'file') {
+        const file = item.getAsFile();
+        e.preventDefault();
+        handleFileSelected(file);
+        break;
+      }
     }
   });
 
