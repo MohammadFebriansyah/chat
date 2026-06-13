@@ -2,16 +2,17 @@
   "name": "chat-app",
   "version": "2.0.0",
   "description": "Real-time chat website with Supabase Realtime",
-  "main": "server.js",
+  "main": "api/index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node api/index.js",
+    "dev": "node api/index.js"
   },
   "dependencies": {
     "express": "^4.21.0",
     "@supabase/supabase-js": "^2.49.0",
     "bcryptjs": "^2.4.3",
-    "express-session": "^1.18.0",
+    "jsonwebtoken": "^9.0.2",
+    "cookie-parser": "^1.4.7",
     "uuid": "^11.1.0"
   }
 }
