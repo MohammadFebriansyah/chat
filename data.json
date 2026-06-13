@@ -1,0 +1,60 @@
+{
+  "users": [
+    {
+      "id": "7713a488-b332-4276-8724-65b89c80f212",
+      "username": "alex",
+      "password": "$2a$10$B.BquG2RkH2.3fURG9zOous6cqJwcLI6wBn7trjFck2idsv/J69sW",
+      "avatarColor": "#6C5CE7",
+      "createdAt": "2026-06-13T12:40:31.580Z"
+    },
+    {
+      "id": "eef7e504-1424-4087-b5c2-153ba2cafc11",
+      "username": "febri",
+      "password": "$2a$10$C56f4bn8IXURUBa6xGyjWubu8Db7a3F3493pmf44JCrZ4EqcAAGhy",
+      "avatarColor": "#A29BFE",
+      "createdAt": "2026-06-13T12:42:16.927Z"
+    }
+  ],
+  "messages": [
+    {
+      "id": "79194269-f015-4b54-afa2-114ac53b64f8",
+      "sender_id": "7713a488-b332-4276-8724-65b89c80f212",
+      "sender_username": "alex",
+      "receiver_id": "eef7e504-1424-4087-b5c2-153ba2cafc11",
+      "receiver_username": "febri",
+      "content": "woi",
+      "is_global": false,
+      "created_at": "2026-06-13T12:42:50.648Z"
+    },
+    {
+      "id": "da218b17-e036-451a-93cf-7b22200b78b0",
+      "sender_id": "eef7e504-1424-4087-b5c2-153ba2cafc11",
+      "sender_username": "febri",
+      "receiver_id": "7713a488-b332-4276-8724-65b89c80f212",
+      "receiver_username": "alex",
+      "content": "hallo",
+      "is_global": false,
+      "created_at": "2026-06-13T12:43:39.930Z"
+    },
+    {
+      "id": "bd03372a-b219-4ef6-adb7-0ad34cab3d2c",
+      "sender_id": "7713a488-b332-4276-8724-65b89c80f212",
+      "sender_username": "alex",
+      "receiver_id": "eef7e504-1424-4087-b5c2-153ba2cafc11",
+      "receiver_username": "febri",
+      "content": "pye",
+      "is_global": false,
+      "created_at": "2026-06-13T12:44:29.718Z"
+    },
+    {
+      "id": "ac4e20d6-39f6-4e42-92d1-16ca833cb0fa",
+      "sender_id": "7713a488-b332-4276-8724-65b89c80f212",
+      "sender_username": "alex",
+      "receiver_id": "eef7e504-1424-4087-b5c2-153ba2cafc11",
+      "receiver_username": "febri",
+      "content": "oi",
+      "is_global": false,
+      "created_at": "2026-06-13T12:44:43.105Z"
+    }
+  ]
+}

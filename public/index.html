@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Aplikasi chat online real-time. Obrolan instan tanpa perlu email atau nomor HP.">
+  <title>ChatKuy — Obrolan Online</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- ═══════════ AUTH SCREEN ═══════════ -->
+  <div id="auth-screen" class="auth-screen">
+    <div class="auth-bg-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+        <div class="logo-icon">
+          <svg viewBox="0 0 48 48" fill="none">
+            <path d="M24 4C12.96 4 4 12.96 4 24c0 3.52.92 6.84 2.52 9.72L4 44l10.68-2.8C17.44 42.88 20.6 44 24 44c11.04 0 20-8.96 20-20S35.04 4 24 4z" fill="url(#logo-grad)"/>
+            <path d="M16 20h16M16 26h10" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="logo-grad" x1="4" y1="4" x2="44" y2="44">
+                <stop stop-color="#6C5CE7"/>
+                <stop offset="1" stop-color="#A29BFE"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <h1 class="logo-text">ChatKuy</h1>
+        <p class="logo-subtitle">Ngobrol online, tanpa ribet.</p>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="auth-form active" autocomplete="off">
+        <h2>Masuk</h2>
+        <div class="input-group">
+          <input type="text" id="login-username" placeholder=" " required minlength="3" maxlength="20">
+          <label for="login-username">Username</label>
+          <div class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+        </div>
+        <div class="input-group">
+          <input type="password" id="login-password" placeholder=" " required minlength="4">
+          <label for="login-password">Password</label>
+          <div class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+        </div>
+        <div id="login-error" class="auth-error"></div>
+        <button type="submit" id="login-btn" class="auth-btn">
+          <span>Masuk</span>
+          <div class="btn-loader"></div>
+        </button>
+        <p class="auth-switch">Belum punya akun? <a href="#" id="show-register">Daftar</a></p>
+      </form>
+
+      <!-- Register Form -->
+      <form id="register-form" class="auth-form" autocomplete="off">
+        <h2>Daftar</h2>
+        <div class="input-group">
+          <input type="text" id="register-username" placeholder=" " required minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]+">
+          <label for="register-username">Username</label>
+          <div class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+        </div>
+        <div class="input-group">
+          <input type="password" id="register-password" placeholder=" " required minlength="4">
+          <label for="register-password">Password</label>
+          <div class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+        </div>
+        <div class="input-group">
+          <input type="password" id="register-confirm" placeholder=" " required minlength="4">
+          <label for="register-confirm">Konfirmasi Password</label>
+          <div class="input-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+        </div>
+        <div id="register-error" class="auth-error"></div>
+        <button type="submit" id="register-btn" class="auth-btn">
+          <span>Daftar</span>
+          <div class="btn-loader"></div>
+        </button>
+        <p class="auth-switch">Sudah punya akun? <a href="#" id="show-login">Masuk</a></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════ CHAT SCREEN ═══════════ -->
+  <div id="chat-screen" class="chat-screen hidden">
+    
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <svg class="sidebar-logo" viewBox="0 0 48 48" fill="none">
+            <path d="M24 4C12.96 4 4 12.96 4 24c0 3.52.92 6.84 2.52 9.72L4 44l10.68-2.8C17.44 42.88 20.6 44 24 44c11.04 0 20-8.96 20-20S35.04 4 24 4z" fill="url(#sb-grad)"/>
+            <path d="M16 20h16M16 26h10" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="sb-grad" x1="4" y1="4" x2="44" y2="44">
+                <stop stop-color="#6C5CE7"/>
+                <stop offset="1" stop-color="#A29BFE"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <span>ChatKuy</span>
+        </div>
+        <button id="sidebar-close" class="sidebar-close" title="Tutup sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Global Chat Button -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Umum</div>
+        <button id="global-chat-btn" class="user-item global-chat active" data-chat="global">
+          <div class="user-avatar" style="background: linear-gradient(135deg, #6C5CE7, #A29BFE);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="user-info">
+            <span class="user-name">Chat Global</span>
+            <span class="user-status">Semua pengguna</span>
+          </div>
+          <span class="unread-badge" id="global-unread" style="display:none;">0</span>
+        </button>
+      </div>
+
+      <!-- Online Users -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Pengguna — <span id="online-count">0</span></div>
+        <div id="online-users-list" class="users-list"></div>
+      </div>
+
+      <!-- User Profile -->
+      <div class="sidebar-footer">
+        <div class="current-user">
+          <div class="user-avatar" id="my-avatar"></div>
+          <div class="user-info">
+            <span class="user-name" id="my-username"></span>
+            <span class="user-status online">Online</span>
+          </div>
+        </div>
+        <button id="logout-btn" class="logout-btn" title="Keluar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Chat Area -->
+    <main class="chat-main">
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <button id="sidebar-toggle" class="sidebar-toggle" title="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        </button>
+        <div class="chat-header-info">
+          <div class="chat-header-avatar" id="chat-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div>
+            <h2 id="chat-title">Chat Global</h2>
+            <p class="chat-header-status" id="chat-status">Semua pengguna</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-welcome" id="chat-welcome">
+          <div class="welcome-icon">
+            <svg viewBox="0 0 64 64" fill="none">
+              <circle cx="32" cy="32" r="28" fill="url(#welcome-grad)" opacity="0.15"/>
+              <path d="M32 12C21 12 12 21 12 32c0 3.5.9 6.8 2.5 9.7L12 52l10.7-2.8C25.4 50.9 28.6 52 32 52c11 0 20-9 20-20S43 12 32 12z" fill="url(#welcome-grad2)"/>
+              <path d="M22 28h20M22 34h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+              <defs>
+                <linearGradient id="welcome-grad" x1="4" y1="4" x2="60" y2="60"><stop stop-color="#6C5CE7"/><stop offset="1" stop-color="#A29BFE"/></linearGradient>
+                <linearGradient id="welcome-grad2" x1="12" y1="12" x2="52" y2="52"><stop stop-color="#6C5CE7"/><stop offset="1" stop-color="#A29BFE"/></linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h3>Selamat datang di Chat Global! 🎉</h3>
+          <p>Kirim pesan pertamamu dan mulai mengobrol.</p>
+        </div>
+      </div>
+
+      <!-- Typing Indicator -->
+      <div class="typing-indicator" id="typing-indicator" style="display:none;">
+        <span id="typing-username"></span> sedang mengetik
+        <div class="typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+
+      <!-- Message Input -->
+      <div class="chat-input-area">
+        <div class="chat-input-wrapper">
+          <textarea id="message-input" placeholder="Ketik pesan..." rows="1" maxlength="2000"></textarea>
+          <button id="send-btn" class="send-btn" title="Kirim" disabled>
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
